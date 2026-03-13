@@ -21,8 +21,17 @@ public class RateLimiter {
     this.timeWindowSeconds = timeWindowSeconds;
   }
 
+  // реализован механизм скользящего окна
   public boolean pass() {
-    // TODO: Implementation
+
+    Instant currentTime = Instant.now();
+    redis.zremrangeByScore(label, 0, currentTime.toEpochMilli() - timeWindowSeconds * 1000);
+
+    if (redis.zcard(label) < maxRequestCount) {
+      redis.zadd(label, currentTime.toEpochMilli(), String.valueOf(Math.random()));
+      redis.expire(label, timeWindowSeconds + 1);
+      return true;
+    }
     return false;
   }
 
